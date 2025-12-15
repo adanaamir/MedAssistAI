@@ -4,11 +4,11 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from auth import supabase
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib
+import re
 
 app = FastAPI()
 
@@ -44,6 +44,7 @@ def main():
     X_train, X_test, y_train, y_test, nb_model, lsvm_model = train_model(X, y_encoded)
 
     user_text = input("Enter your symptoms: ").lower()
+    user_text = normalize(user_text)
     user_vector = text_to_symptom(user_text, symptoms)
 
     #making predictions
@@ -69,41 +70,100 @@ def preprocess_data():
     
     return X,y_encoded, le, symptoms
 
-def augment_symptoms(X, y, noise_level=0.1):
+def augment_symptoms(X, y, core_frac=0.7, optional_frac=0.3, noise_level=0.01):
     """
-    Randomly flip some symptom bits to simulate real user input.
-    noise_level: fraction of symptoms to flip per row
-    """
-    X_aug = X.copy()
-    for i in range(len(X_aug)):
-        # how many symptoms to flip for this row
-        n_flip = max(1, int(noise_level * X.shape[1]))
-        flip_indices = np.random.choice(X.shape[1], n_flip, replace=False)
-        # flip 0 -> 1 or 1 -> 0
-        X_aug.iloc[i, flip_indices] = 1 - X_aug.iloc[i, flip_indices]
+    Creates a diverse and medically realistic dataset from binary symptom data.
     
-    return X_aug, y
+    X: original symptom DataFrame
+    y: disease labels
+    core_frac: fraction of core symptoms to keep for each disease
+    optional_frac: fraction of other symptoms to randomly add
+    noise_level: small fraction of random flips to simulate user input mistakes
+    """
+    X_aug = pd.DataFrame(columns=X.columns)
+    y_aug = []
 
+    for idx, row in X.iterrows():
+        disease = y[idx]
+        symptoms_present = row[row == 1].index.tolist()
+        symptoms_absent = row[row == 0].index.tolist()
+
+        # Core symptoms: keep most of them
+        n_core = max(1, int(core_frac * len(symptoms_present)))
+        core_keep = np.random.choice(symptoms_present, n_core, replace=False).tolist()
+
+        # Optional symptoms: randomly add some absent ones
+        n_optional = max(0, int(optional_frac * len(symptoms_absent)))
+        optional_add = np.random.choice(symptoms_absent, n_optional, replace=False).tolist()
+
+        new_row = [0] * len(X.columns)
+        for i, col in enumerate(X.columns):
+            if col in core_keep or col in optional_add:
+                new_row[i] = 1
+
+        # Add small random noise
+        n_noise = max(1, int(noise_level * len(X.columns)))
+        noise_indices = np.random.choice(len(X.columns), n_noise, replace=False)
+        for i in noise_indices:
+            if new_row[i] == 0:
+                new_row[i] = 1
+
+
+        X_aug.loc[len(X_aug)] = new_row
+        y_aug.append(disease)
+
+    return X_aug, np.array(y_aug)
+
+def normalize(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', ' ', text)
+    return text
 
 def text_to_symptom(user_text,symptoms):
     vector = []
     
-    for symptom in symptoms:
-        if symptom in user_text:
-            vector.append(1)
-        else:
-            vector.append(0)
-            
-    print(vector)
-        
-    return np.array(vector).reshape(1, -1)
+    user_words = set(user_text.lower().split())
     
+    synonyms = {
+        "high blood pressure": ["high blood pressure", "blood pressure is high", "bp high", "high bp"],
+        "high glucose": ["high glucose", "sugar levels high", "blood sugar high", "high blood sugar"],
+        "sore throat": ["sore throat", "throat hurts", "pain in throat", "throat pain"],
+        "loss of taste": ["loss of taste", "cant taste food", "taste is gone", "cant taste"],
+        "fatigue": ["tired", "very tired", "fatigue", "lazyness"],
+        "fever": ["fever", "feverish", "high temperature", "temperature high"],
+        "cough": ["cough", "coughing", "dry cough"],
+        "headache": ["headache", "headaches"],
+        "pink red patches": ["pink red patches", "redness"]
+        }
+    
+    for symptom in symptoms:
+        matched = 0
+        if symptom in synonyms:
+            for syn in synonyms[symptom]:
+                syn_words = set(syn.lower().split())
+                if syn_words.issubset(user_words):
+                    matched = 1
+                    break
+        else:
+            symptom_words = set(symptom.lower().split())
+            if symptom_words.issubset(user_words):
+                matched = 1
+        vector.append(matched)
+        
+    print(vector)
+    
+    return np.array(vector).reshape(1, -1)
+        
 def train_model(X, y_encoded):
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, train_size=0.8, random_state=42, stratify=y_encoded)
-    
-    X_augmented, y_augmented = augment_symptoms(X_train, y_train, noise_level=0.1)
+    y_train = pd.Series(y_train).reset_index(drop=True)
 
-    nb_model = MultinomialNB()
+    X_train = X_train.reset_index(drop=True)
+    y_train = y_train.reset_index(drop=True)
+
+    X_augmented, y_augmented = augment_symptoms(X_train, y_train, noise_level=0.01)
+
+    nb_model = MultinomialNB(alpha=0.1)
     nb_model.fit(X_augmented, y_augmented)
 
     lsvm_model = LinearSVC(max_iter=10000)
