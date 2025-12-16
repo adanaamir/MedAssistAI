@@ -42,7 +42,7 @@ def signup(email: str, password: str):
     
 def main():
     X, y_encoded, le, symptoms = preprocess_data()
-    X_train, X_test, y_train, y_test, nb_model, lsvm_model = train_model(X, y_encoded)
+    X_train, X_test, y_train, y_test, nb_model, svm_baseline, svm_pca, pca = train_model(X, y_encoded)
 
     while True:
         user_text = input("\nEnter your symptoms: ").lower()
@@ -54,9 +54,9 @@ def main():
         else:
             break
     
-    model_evaluation(nb_model, lsvm_model, y_test, X_test, X_train, y_train)
+    model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train)
     
-    real_time_prediction(user_vector, X, nb_model, lsvm_model, le)
+    real_time_prediction(user_vector, X, nb_model, svm_baseline, svm_pca, pca, le)
 
 def preprocess_data():
     df = pd.read_csv("data.csv")
@@ -263,33 +263,46 @@ def train_model(X, y_encoded):
 
     X_augmented, y_augmented = augment_symptoms(X_train, y_train, noise_level=0.01)
 
+    #---------------------------BASELINE MODELS-------------------------------
     nb_model = MultinomialNB(alpha=0.1)
     nb_model.fit(X_augmented, y_augmented)
 
-    lsvm_model = LinearSVC(max_iter=10000)
-    lsvm_model.fit(X_augmented, y_augmented)
+    svm_baseline = LinearSVC(max_iter=10000)
+    svm_baseline.fit(X_augmented, y_augmented)
+    
+    #--------------------------PCA + SVM ------------------------------------
+    pca = PCA(n_components=0.95, random_state=42)
 
-    return X_train, X_test, y_train, y_test, nb_model, lsvm_model
+    X_train_pca = pca.fit_transform(X_augmented)
+    X_test_pca = pca.transform(X_test)
+
+    svm_pca = LinearSVC(max_iter=10000)
+    svm_pca.fit(X_train_pca, y_augmented)
+
+    return X_train, X_test, y_train, y_test, nb_model, svm_baseline, svm_pca, pca
     
-def model_evaluation(nb_model, lsvm_model, y_test, X_test, X_train, y_train):
+def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train):
+    #BASELINE PREDICTIONS
     y_pred_nb = nb_model.predict(X_test)    
-    y_pred_svm = lsvm_model.predict(X_test)
+    y_pred_svm = svm_baseline.predict(X_test)
     
-    print("TEST ACCURACY:\n")
+    #PCA PREDICTIONS
+    X_test_pca = pca.transform(X_test)
+    X_train_pca = pca.transform(X_train)
+    y_pred_svm_pca = svm_pca.predict(X_test_pca)
+    
+    print("\nTEST ACCURACY")
     print(f"NB Test Accuracy: {accuracy_score(y_test, y_pred_nb):.4f}")
-    print(f"SVM Test Accuracy: {accuracy_score(y_test, y_pred_svm):.4f}")
-    
-    y_train_pred_nb = nb_model.predict(X_train)
-    y_train_pred_svm = lsvm_model.predict(X_train)
+    print(f"SVM Baseline Accuracy: {accuracy_score(y_test, y_pred_svm):.4f}")
+    print(f"SVM + PCA Accuracy: {accuracy_score(y_test, y_pred_svm_pca):.4f}")
     
     print("TRAIN ACCURACY:\n")
-    train_acc_nb = accuracy_score(y_train, y_train_pred_nb)
-    train_acc_svm = accuracy_score(y_train, y_train_pred_svm)
-    
-    print(f"NB Training Accuracy: {train_acc_nb:.4f}")
-    print(f"SVM Training Accuracy: {train_acc_svm:.4f}")
-    
-    print("Multinomial Naives Baye's Model")
+    print(f"NB Training Accuracy: {accuracy_score(y_train, nb_model.predict(X_train)):.4f}")
+    print(f"SVM Training Accuracy: {accuracy_score(y_train, svm_baseline.predict(X_train)):.4f}")
+    print(f"SVM + PCA Accuracy: {accuracy_score(y_train, svm_pca.predict(X_train_pca)):.4f}")
+
+    print("---===============FINAL================---")
+    print("\nMultinomial Naives Baye's Model")
     print(f"accuracy Score: {accuracy_score(y_test, y_pred_nb)}")
     # print(f"Classification Report:\n {classification_report(y_test, y_pred_nb)}")
     # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_nb)}")
@@ -298,17 +311,24 @@ def model_evaluation(nb_model, lsvm_model, y_test, X_test, X_train, y_train):
 
     print("Linear SVM Model")
     print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm)}")
+    
+    print("Linear SVM (PCA) Model")
+    print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm_pca)}")
     # print(f"Classification Report:\n {classification_report(y_test, y_pred_svm)}")
     # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_svm)}")
     
-def real_time_prediction(user_vector, X, nb_model, lsvm_model, le):
-    user_vector = pd.DataFrame(user_vector, columns=X.columns)
+def real_time_prediction(user_vector, X, nb_model, svm_baseline, svm_pca, pca, le):
+    user_vector_df = pd.DataFrame(user_vector, columns=X.columns)
 
-    nb_pred = nb_model.predict(user_vector)
-    svm_pred = lsvm_model.predict(user_vector)
+    nb_pred = nb_model.predict(user_vector_df)
+    svm_pred = svm_baseline.predict(user_vector_df)
+    
+    user_vector_pca = pca.transform(user_vector_df)
+    svm_pca_pred = svm_pca.predict(user_vector_pca)
     
     print(f"\nNB SAYS: {le.inverse_transform(nb_pred)[0]}")
     print(f"\nSVM SAYS: {le.inverse_transform(svm_pred)[0]}")
+    print(f"SVM (PCA) SAYS: {le.inverse_transform(svm_pca_pred)[0]}")
 
 if __name__ == '__main__': 
     main()
