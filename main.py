@@ -43,8 +43,7 @@ def main():
     X, y_encoded, le, symptoms = preprocess_data()
     X_train, X_test, y_train, y_test, nb_model, lsvm_model = train_model(X, y_encoded)
 
-    user_text = input("Enter your symptoms: ").lower()
-    user_text = normalize(user_text)
+    user_text = input("\nEnter your symptoms: ").lower()
     user_vector = text_to_symptom(user_text, symptoms)
 
     #making predictions
@@ -117,42 +116,62 @@ def augment_symptoms(X, y, core_frac=0.7, optional_frac=0.3, noise_level=0.01):
 def normalize(text):
     text = text.lower()
     text = re.sub(r'[^a-z\s]', ' ', text)
-    return text
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text    
 
-def text_to_symptom(user_text,symptoms):
+def text_to_symptom(user_text, symptoms):
+    user_text = normalize(user_text)
+    user_tokens = set(user_text.split())
+    user_tokens = expand_tokens(user_tokens)
+
     vector = []
-    
-    user_words = set(user_text.lower().split())
-    
-    synonyms = {
-        "high blood pressure": ["high blood pressure", "blood pressure is high", "bp high", "high bp"],
-        "high glucose": ["high glucose", "sugar levels high", "blood sugar high", "high blood sugar"],
-        "sore throat": ["sore throat", "throat hurts", "pain in throat", "throat pain"],
-        "loss of taste": ["loss of taste", "cant taste food", "taste is gone", "cant taste"],
-        "fatigue": ["tired", "very tired", "fatigue", "lazyness"],
-        "fever": ["fever", "feverish", "high temperature", "temperature high"],
-        "cough": ["cough", "coughing", "dry cough"],
-        "headache": ["headache", "headaches"],
-        "pink red patches": ["pink red patches", "redness"]
-        }
-    
+
     for symptom in symptoms:
-        matched = 0
-        if symptom in synonyms:
-            for syn in synonyms[symptom]:
-                syn_words = set(syn.lower().split())
-                if syn_words.issubset(user_words):
-                    matched = 1
-                    break
+        symptom_tokens = set(symptom.lower().split())
+        symptom_tokens = expand_tokens(symptom_tokens)
+
+        overlap = user_tokens.intersection(symptom_tokens)
+
+        if len(symptom_tokens) == 1:
+            # Single-word symptom: just need 1 match
+            matched = 1 if len(overlap) >= 1 else 0
         else:
-            symptom_words = set(symptom.lower().split())
-            if symptom_words.issubset(user_words):
-                matched = 1
-        vector.append(matched)
+            # Multi-word symptom: need at least 2 tokens (or all if symptom has only 2)
+            min_required = min(2, len(symptom_tokens))
+            matched = 1 if len(overlap) >= min_required else 0
         
+        vector.append(matched)
+
+    print("\n")
     print(vector)
-    
     return np.array(vector).reshape(1, -1)
+
+
+def expand_tokens(tokens):
+    expanded = set()
+    
+    token_synonyms = {
+        "high": {"high", "elevated", "raised", "increased"},
+        "glucose": {"glucose", "sugar", "bloodsugar", "sugarlevel"},
+        "fever": {"fever", "feverish", "temperature"},
+        "fatigue": {"fatigue", "tired", "exhausted", "weak"},
+        "pain": {"pain", "ache", "aching", "hurt"},
+        "abdominal": {"abdominal", "abdomen", "stomach", "belly"},
+        "headache": {"headache", "migraine"},
+        "cough": {"cough", "coughing"},
+    }
+
+    for token in tokens:
+        found = False
+        for base, variants in token_synonyms.items():
+            if token in variants:
+                expanded.add(base)
+                found = True
+                break
+        if not found:
+            expanded.add(token)
+
+    return expanded
         
 def train_model(X, y_encoded):
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, train_size=0.8, random_state=42, stratify=y_encoded)
@@ -200,8 +219,6 @@ def model_evaluation(nb_model, lsvm_model, y_test, X_test, X_train, y_train):
     print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm)}")
     # print(f"Classification Report:\n {classification_report(y_test, y_pred_svm)}")
     # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_svm)}")
-    
-    print("BOTH TRAINED")
     
 def real_time_prediction(user_vector, X, nb_model, lsvm_model, le):
     user_vector = pd.DataFrame(user_vector, columns=X.columns)
