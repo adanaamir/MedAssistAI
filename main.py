@@ -168,13 +168,14 @@ def expand_tokens(tokens):
         "low": {"low", "decreased", "reduced", "dropped"},
         
         #body parts and systems
-        "glucose": {"glucose", "sugar", "bloodsugar", "sugarlevel"},
+        "glucose": {"glucose", "sugar", "bloodsugar", "sugarlevel", "sugar level", "glucose level"},
         "bp": {"bp", "bloodpressure", "blood", "pressure"},
-        "abdominal": {"abdominal", "abdomen", "stomach", "belly", "tummy", "abdomin"},
+        "abdominal": {"abdominal", "abdomen", "stomach", "belly", "tummy", "abdomin", "gastric"},
         "chest": {"chest", "thoracic"},
-        "joint": {"joint", "joints"},
-        "head": {"head", "cranial"},
+        "joint": {"joint", "joints", "elbow", "shoulder", "knee"},
+        "head": {"head", "cranial", "skull"},
         "body": {"body", "torso", "trunk"},
+        "back": {"back", "spine"},
 
         #symptoms
         "fever": {"fever", "feverish", "temperature", "pyrexia"},
@@ -191,6 +192,29 @@ def expand_tokens(tokens):
         "dizzy": {"dizzy", "dizziness", "vertigo", "lightheaded"},
         "backache": {"backache", "back", "hurts"},
         
+        "pain behind eyes": {"pain behind eyes", "eye", "pain", "eye pain", "retro orbital pain"},
+        "jaundince": {"jaundice", "yellow", "skin", "eyes", "yellow eyes", "yellowing of eyes", "yellowing of skin"},
+        "dark urine": {"dark urine", "color", "urine", "brown"},
+        "clay colored stools": {"clay colored stools", "light", "pale", "stool"},
+        "shaking_chills": {"shaking chills", "rigors", "severe chills", "violent chills", "chills with shaking"},
+        "sudden high fever": {"sudden high fever", "sudden", "acute fever","high fever suddenly"},
+        "polydipsia": {"polydipsia", "excessive thirst","always thirsty", "increased thirst"},
+        "polyuria": {"polyuria", "frequent urination","urinating frequently", "excessive urination","passing urine often"},
+        "blurred_vision": {"blurred vision", "blurry vision","vision blur", "unclear vision"},
+        "excessive_hunger": {"excessive hunger", "increased appetite","always hungry", "extreme hunger"},
+        "sweating": {"sweating", "excessive sweating","night sweats", "perspiration"},
+        "heartburn": {"heartburn", "burning chest","burning sensation", "acid burn"},
+        "acid_reflux": {"acid reflux", "reflux", "regurgitation","sour taste", "acid coming up"},
+        "early_satiety": {"early satiety", "feel full quickly","full too soon", "gets full early"},
+        "epigastric_pain": {"epigastric pain", "upper abdominal pain","pain in upper stomach", "stomach upper pain"},
+        "steatorrhea": {"steatorrhea", "fatty stools","oily stool", "greasy stool"},
+        "urgent_defecation": {"urgent defecation", "bowel urgency","urgent bowel movement", "sudden urge to poop"},
+        "bloody_diarrhea": {"bloody diarrhea", "blood in stool","blood in diarrhea", "bloody stools"},
+        "chronic_diarrhea": {"chronic diarrhea", "long term diarrhea","persistent diarrhea", "diarrhea for weeks"},
+        "rash_between_toes": {"rash between toes", "toe rash","itching between toes", "fungal infection toes"},
+        "weight_gain": {"weight gain", "gaining weight","put on weight", "increased weight"},
+        "cold_intolerance": {"cold intolerance", "feels cold","cannot tolerate cold", "sensitive to cold"},
+                      
         #respiratory
         "breath": {"breath", "breathing", "breathless"},
         "shortness": {"shortness", "short", "difficulty"},
