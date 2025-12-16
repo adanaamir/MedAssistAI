@@ -192,28 +192,45 @@ def expand_tokens(tokens):
         "dizzy": {"dizzy", "dizziness", "vertigo", "lightheaded"},
         "backache": {"backache", "back", "hurts"},
         
-        "pain behind eyes": {"pain behind eyes", "eye", "pain", "eye pain", "retro orbital pain"},
-        "jaundince": {"jaundice", "yellow", "skin", "eyes", "yellow eyes", "yellowing of eyes", "yellowing of skin"},
-        "dark urine": {"dark urine", "color", "urine", "brown"},
-        "clay colored stools": {"clay colored stools", "light", "pale", "stool"},
-        "shaking_chills": {"shaking chills", "rigors", "severe chills", "violent chills", "chills with shaking"},
-        "sudden high fever": {"sudden high fever", "sudden", "acute fever","high fever suddenly"},
-        "polydipsia": {"polydipsia", "excessive thirst","always thirsty", "increased thirst"},
-        "polyuria": {"polyuria", "frequent urination","urinating frequently", "excessive urination","passing urine often"},
-        "blurred_vision": {"blurred vision", "blurry vision","vision blur", "unclear vision"},
-        "excessive_hunger": {"excessive hunger", "increased appetite","always hungry", "extreme hunger"},
-        "sweating": {"sweating", "excessive sweating","night sweats", "perspiration"},
-        "heartburn": {"heartburn", "burning chest","burning sensation", "acid burn"},
-        "acid_reflux": {"acid reflux", "reflux", "regurgitation","sour taste", "acid coming up"},
-        "early_satiety": {"early satiety", "feel full quickly","full too soon", "gets full early"},
-        "epigastric_pain": {"epigastric pain", "upper abdominal pain","pain in upper stomach", "stomach upper pain"},
-        "steatorrhea": {"steatorrhea", "fatty stools","oily stool", "greasy stool"},
-        "urgent_defecation": {"urgent defecation", "bowel urgency","urgent bowel movement", "sudden urge to poop"},
-        "bloody_diarrhea": {"bloody diarrhea", "blood in stool","blood in diarrhea", "bloody stools"},
-        "chronic_diarrhea": {"chronic diarrhea", "long term diarrhea","persistent diarrhea", "diarrhea for weeks"},
-        "rash_between_toes": {"rash between toes", "toe rash","itching between toes", "fungal infection toes"},
-        "weight_gain": {"weight gain", "gaining weight","put on weight", "increased weight"},
-        "cold_intolerance": {"cold intolerance", "feels cold","cannot tolerate cold", "sensitive to cold"},
+        "jaundice": {"jaundice", "yellow", "yellowing", "jaundice"},
+        "dark": {"dark", "brown", "colored"},
+        "clay": {"clay", "light", "pale"},
+        "color": {"color", "colored"},
+        "bloody": {"bloody", "blood"},
+        "fatty": {"fatty", "oily", "greasy"},
+        
+        #severity/frequency
+        "chronic": {"chronic", "persistent", "long", "term", "ongoing", "prolonged"},
+        "excessive": {"excessive", "increased", "extreme", "always"},
+        "urgent": {"urgent", "urgency", "sudden"},
+        "early": {"early", "quickly", "soon"},
+        
+        #specific symptoms
+        "chill": {"chill", "rigor", "shaking", "violent", "severe"},
+        "thirst": {"thirst", "thirsty", "polydipsia"},
+        "hunger": {"hunger", "hungry", "appetite"},
+        "vision": {"vision", "blurred", "blurry", "blur", "unclear"},
+        "sweat": {"sweat", "sweating", "perspiration", "night"},
+        "heartburn": {"heartburn", "acid", "reflux", "sour"},
+        "satiety": {"satiety", "full", "filling"},
+        "epigastric": {"epigastric", "upper"},
+        "steatorrhea": {"steatorrhea"},
+        "defecation": {"defecation", "movement"},
+        "intolerance": {"intolerance", "sensitive", "cannot", "tolerate"},
+        
+        #respiratory
+        "breath": {"breath", "breathing", "breathless"},
+        "shortness": {"shortness", "short", "difficulty"},
+        
+        #weight
+        "weight": {"weight", "mass"},
+        "loss": {"loss", "losing", "lost"},
+        "gain": {"gain", "gaining", "gained", "put"},
+        
+        #severity descriptors
+        "slight": {"slight", "mild", "little", "minor"},
+        "severe": {"severe", "intense", "extreme", "acute", "bad"},
+        "constant": {"constant", "persistent", "ongoing", "continuous", "always"},
                       
         #respiratory
         "breath": {"breath", "breathing", "breathless"},
