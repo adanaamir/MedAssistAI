@@ -1,24 +1,60 @@
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends, Header
-from auth import supabase
+from app.auth import supabase
+from pydantic import BaseModel
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import joblib
+import joblib, os
 from ml_utils import text_to_symptom, symptoms_list, le
 
 app = FastAPI(title="Medical Assistant AI")
 
 #loading models
-nb_model = joblib.load('models/naive_bayes_model.pkl')
-svm_pca_model = joblib.load('models/svm_pca_model.pkl')
-pca = joblib.load('models/pca_transform.pkl')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, '..', 'models')
 
+nb_model = joblib.load(os.path.join(MODEL_DIR, 'naive_bayes_model.pkl'))
+svm_baseline_model = joblib.load(os.path.join(MODEL_DIR, 'svm_baseline_model.pkl'))
+svm_pca_model = joblib.load(os.path.join(MODEL_DIR, 'svm_pca_model.pkl'))
+pca = joblib.load(os.path.join(MODEL_DIR, 'pca_transform.pkl'))
+le = joblib.load(os.path.join(MODEL_DIR, 'label_encoder.pkl'))
+symptoms_list = joblib.load(os.path.join(MODEL_DIR, 'symptoms_list.pkl'))
+
+class symptomsInput(BaseModel):
+    symptoms_text: str
+    
 @app.get("/")
 def root():
     return {"message": "Medical Assistant API Running..."}
     
-# @app.route("/predict")
-# def predict_disease(data: symptoms_list):
+@app.route("/predict")
+def predict_disease(data: symptomsInput):
+    try:
+        user_vector, matched_count = text_to_symptom(data.symptoms_text, symptoms_list)
+
+        if matched_count < 3:
+            return {
+                "warning": "Need at least 3 symptoms for reliable prediction.",
+                "matched_count": matched_count,
+                "predictions": None
+            }
+            
+        user_vector_df = pd.DataFrame(user_vector, columns=symptoms_list)
+
+        nb_pred = nb_model.predict(user_vector_df)
+        svm_pred = svm_baseline_model.predict(user_vector_df)
+        user_vector_pca = pca.transform(user_vector_df)
+        svm_pca_pred = svm_pca_model.predict(user_vector_pca)
         
+        return {
+            "matched_symptoms": matched_count,
+            "predictions": {
+                "naive_bayes": le.inverse_transform(nb_pred)[0],
+                "linear_svm": le.inverse_transform(svm_baseline_model)[0],
+                "svm_pca": le.inverse_transform(svm_pca_pred)[0]
+            }
+        } 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/signup")
 def signup(email: str, password: str):
@@ -42,27 +78,7 @@ def signup(email: str, password: str):
         "access_token": response.session.access_token,
         "token_type": "bearer"        
     }
-    
-def main():
-    X, y_encoded, le, symptoms = preprocess_data()
-    X_train, X_test, y_train, y_test, nb_model, svm_baseline, svm_pca, pca = train_model(X, y_encoded)
 
-    save_model(nb_model, svm_pca, pca)
-    
-    while True:
-        user_text = input("\nEnter your symptoms: ").lower()
-        user_vector, matched_count = text_to_symptom(user_text, symptoms)
-
-        if matched_count < 3:
-            print("\nWarning! Need at least 3 symptoms for reliable prediction.")
-            print("Please enter more symptoms.\n")
-        else:
-            break
-    
-    model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train)
-    
-    real_time_prediction(user_vector, X, nb_model, svm_baseline, svm_pca, pca, le)
-    
     
 def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train):
     #BASELINE PREDICTIONS
@@ -97,26 +113,3 @@ def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_tra
     print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm_pca)}")
     # print(f"Classification Report:\n {classification_report(y_test, y_pred_svm)}")
     # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_svm)}")
-    
-def real_time_prediction(user_vector, X, nb_model, svm_baseline, svm_pca, pca, le):
-    user_vector_df = pd.DataFrame(user_vector, columns=X.columns)
-
-    nb_pred = nb_model.predict(user_vector_df)
-    svm_pred = svm_baseline.predict(user_vector_df)
-    
-    user_vector_pca = pca.transform(user_vector_df)
-    svm_pca_pred = svm_pca.predict(user_vector_pca)
-    
-    print(f"\nNB SAYS: {le.inverse_transform(nb_pred)[0]}")
-    print(f"SVM SAYS: {le.inverse_transform(svm_pred)[0]}")
-    print(f"SVM (PCA) SAYS: {le.inverse_transform(svm_pca_pred)[0]}")
-    
-def save_model(nb_model, svm_pca, pca):
-    joblib.dump(nb_model, 'naive_bayes_model.pkl')
-    joblib.dump(svm_pca, 'svm_pca_model.pkl')
-    joblib.dump(pca, 'pca_transform.pkl')
-    
-    print("Models and PCA saved successfully!")
-
-if __name__ == '__main__': 
-    main()
