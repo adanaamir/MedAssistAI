@@ -1,10 +1,9 @@
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends, Header
-from app.auth import supabase
+from auth import supabase
 from pydantic import BaseModel
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib, os
-from ml_utils import text_to_symptom, symptoms_list, le
+from app.ml_utils import text_to_symptom
 
 app = FastAPI(title="Medical Assistant AI")
 
@@ -26,7 +25,7 @@ class symptomsInput(BaseModel):
 def root():
     return {"message": "Medical Assistant API Running..."}
     
-@app.route("/predict")
+@app.post("/predict")
 def predict_disease(data: symptomsInput):
     try:
         user_vector, matched_count = text_to_symptom(data.symptoms_text, symptoms_list)
@@ -49,7 +48,7 @@ def predict_disease(data: symptomsInput):
             "matched_symptoms": matched_count,
             "predictions": {
                 "naive_bayes": le.inverse_transform(nb_pred)[0],
-                "linear_svm": le.inverse_transform(svm_baseline_model)[0],
+                "linear_svm": le.inverse_transform(svm_pred)[0],
                 "svm_pca": le.inverse_transform(svm_pca_pred)[0]
             }
         } 
@@ -67,7 +66,7 @@ def signup(email: str, password: str):
     return {"message": "Signup Successful"}
 
 @app.post("/login")
-def signup(email: str, password: str):
+def login(email: str, password: str):
     response = supabase.auth.sign_in_with_password({
         "email": email,
         "password": password
@@ -80,36 +79,3 @@ def signup(email: str, password: str):
     }
 
     
-def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train):
-    #BASELINE PREDICTIONS
-    y_pred_nb = nb_model.predict(X_test)    
-    y_pred_svm = svm_baseline.predict(X_test)
-    
-    #PCA PREDICTIONS
-    X_test_pca = pca.transform(X_test)
-    X_train_pca = pca.transform(X_train)
-    y_pred_svm_pca = svm_pca.predict(X_test_pca)
-    
-    print("\nTEST ACCURACY")
-    print(f"NB Test Accuracy: {accuracy_score(y_test, y_pred_nb):.4f}")
-    print(f"SVM Baseline Accuracy: {accuracy_score(y_test, y_pred_svm):.4f}")
-    print(f"SVM + PCA Accuracy: {accuracy_score(y_test, y_pred_svm_pca):.4f}")
-    
-    print("TRAIN ACCURACY:\n")
-    print(f"NB Training Accuracy: {accuracy_score(y_train, nb_model.predict(X_train)):.4f}")
-    print(f"SVM Training Accuracy: {accuracy_score(y_train, svm_baseline.predict(X_train)):.4f}")
-    print(f"SVM + PCA Accuracy: {accuracy_score(y_train, svm_pca.predict(X_train_pca)):.4f}")
-
-    print("\n===============FINAL PREDICTIONS================")
-    print("\nMultinomial Naives Baye's Model")
-    print(f"accuracy Score: {accuracy_score(y_test, y_pred_nb)}")
-    # print(f"Classification Report:\n {classification_report(y_test, y_pred_nb)}")
-    # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_nb)}")
-
-    print("Linear SVM Model")
-    print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm)}")
-    
-    print("Linear SVM (PCA) Model")
-    print(f"accuracy Score: {accuracy_score(y_test, y_pred_svm_pca)}")
-    # print(f"Classification Report:\n {classification_report(y_test, y_pred_svm)}")
-    # print(f"Confusion Matrix: \n {confusion_matrix(y_test, y_pred_svm)}")
