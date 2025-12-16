@@ -60,14 +60,13 @@ def preprocess_data():
 
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
-    # print(df.columns)
     
     symptoms = X.columns.tolist()
     symptoms = [s.lower().strip() for s in X.columns]
     
-    print(symptoms)
+    print("Available symptoms:", symptoms)
     
-    return X,y_encoded, le, symptoms
+    return X, y_encoded, le, symptoms
 
 def augment_symptoms(X, y, core_frac=0.7, optional_frac=0.3, noise_level=0.01):
     """
@@ -107,7 +106,6 @@ def augment_symptoms(X, y, core_frac=0.7, optional_frac=0.3, noise_level=0.01):
             if new_row[i] == 0:
                 new_row[i] = 1
 
-
         X_aug.loc[len(X_aug)] = new_row
         y_aug.append(disease)
 
@@ -119,55 +117,104 @@ def normalize(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text    
 
+def normalize_token(token):
+    if len(token) > 3 and token.endswith('s') and token not in {'loss', 'dizziness', 'breathless', 'weakness', 'tiredness'}:
+        return token[:-1]
+    return token
+
 def text_to_symptom(user_text, symptoms):
     user_text = normalize(user_text)
-    user_tokens = set(user_text.split())
-    user_tokens = expand_tokens(user_tokens)
+    user_tokens = set(user_text.split())  #tokenizing user text
+    user_tokens = {normalize_token(t) for t in user_tokens}  #normalizing user tokens
+    user_tokens = expand_tokens(user_tokens)  #expanding user tokens
 
     vector = []
+    matched_symptoms = []
 
     for symptom in symptoms:
-        symptom_tokens = set(symptom.lower().split())
-        symptom_tokens = expand_tokens(symptom_tokens)
+        symptom_normalized = re.sub(r'[_\-]', ' ', symptom.lower())
+        symptom_tokens = set(symptom_normalized.split())    #tokenizing symptoms dataset
+        symptom_tokens = {normalize_token(t) for t in symptom_tokens}  #normalizing symptoms 
+        symptom_tokens = expand_tokens(symptom_tokens)  #expanding symptoms
 
+        # Calculate token overlap
         overlap = user_tokens.intersection(symptom_tokens)
 
+        # Matching logic based on symptom token count
         if len(symptom_tokens) == 1:
-            # Single-word symptom: just need 1 match
+            # Single-word symptom: need exact match
             matched = 1 if len(overlap) >= 1 else 0
+        elif len(symptom_tokens) == 2:
+            # Two-word symptom: need BOTH words to match
+            matched = 1 if len(overlap) == 2 else 0
         else:
-            # Multi-word symptom: need at least 2 tokens (or all if symptom has only 2)
-            min_required = min(2, len(symptom_tokens))
-            matched = 1 if len(overlap) >= min_required else 0
+            # Three+ word symptom: need at least 2 matching words
+            matched = 1 if len(overlap) >= 2 else 0
+        
+        if matched:
+            matched_symptoms.append(symptom)
         
         vector.append(matched)
 
-    print("\n")
-    print(vector)
+    print(f"\n✓ Matched {len(matched_symptoms)} symptoms: {matched_symptoms}")
     return np.array(vector).reshape(1, -1)
-
 
 def expand_tokens(tokens):
     expanded = set()
     
-    token_synonyms = {
-        "high": {"high", "elevated", "raised", "increased"},
+    synonym_map = {
+        #modifiers
+        "high": {"high", "elevated", "raised", "increased", "very"},
+        "low": {"low", "decreased", "reduced", "dropped"},
+        
+        #body parts and systems
         "glucose": {"glucose", "sugar", "bloodsugar", "sugarlevel"},
-        "fever": {"fever", "feverish", "temperature"},
-        "fatigue": {"fatigue", "tired", "exhausted", "weak"},
-        "pain": {"pain", "ache", "aching", "hurt"},
-        "abdominal": {"abdominal", "abdomen", "stomach", "belly"},
-        "headache": {"headache", "migraine"},
+        "bp": {"bp", "bloodpressure", "blood", "pressure"},
+        "abdominal": {"abdominal", "abdomen", "stomach", "belly", "tummy", "abdomin"},
+        "chest": {"chest", "thoracic"},
+        "joint": {"joint", "joints"},
+        "head": {"head", "cranial"},
+        "body": {"body", "torso", "trunk"},
+
+        #symptoms
+        "fever": {"fever", "feverish", "temperature", "pyrexia"},
+        "fatigue": {"fatigue", "tired", "exhausted", "weak", "weakness", "tiredness", "lethargy"},
+        "pain": {"pain", "ache", "aching", "hurt", "hurting", "painful", "discomfort"},
         "cough": {"cough", "coughing"},
+        "headache": {"headache", "migraine"},
+        "nausea": {"nausea", "nauseous", "queasy"},
+        "vomit": {"vomit", "vomiting", "puking", "puke"},
+        "diarrhea": {"diarrhea", "loose"},
+        "rash": {"rash", "rashes", "eruption"},
+        "itch": {"itch", "itching", "itchy"},
+        "swelling": {"swelling", "swollen", "edema"},
+        "dizzy": {"dizzy", "dizziness", "vertigo", "lightheaded"},
+        "backache": {"backache", "back", "hurts"},
+        
+        #respiratory
+        "breath": {"breath", "breathing", "breathless"},
+        "shortness": {"shortness", "short", "difficulty"},
+        
+        #weight
+        "weight": {"weight", "mass"},
+        "loss": {"loss", "losing", "lost"},
+        "gain": {"gain", "gaining", "gained"},
+        
+        #severity descriptors
+        "slight": {"slight", "mild", "little", "minor"},
+        "severe": {"severe", "intense", "extreme", "acute", "bad"},
+        "constant": {"constant", "persistent", "ongoing", "continuous", "always"},
     }
 
     for token in tokens:
+        normalized = normalize_token(token)
         found = False
-        for base, variants in token_synonyms.items():
-            if token in variants:
-                expanded.add(base)
+        for base_term, variants in synonym_map.items():
+            if normalized in variants or token in variants:
+                expanded.add(base_term)
                 found = True
                 break
+        
         if not found:
             expanded.add(token)
 
@@ -175,10 +222,9 @@ def expand_tokens(tokens):
         
 def train_model(X, y_encoded):
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, train_size=0.8, random_state=42, stratify=y_encoded)
+    
     y_train = pd.Series(y_train).reset_index(drop=True)
-
     X_train = X_train.reset_index(drop=True)
-    y_train = y_train.reset_index(drop=True)
 
     X_augmented, y_augmented = augment_symptoms(X_train, y_train, noise_level=0.01)
 
@@ -229,7 +275,5 @@ def real_time_prediction(user_vector, X, nb_model, lsvm_model, le):
     print(f"\nNB SAYS: {le.inverse_transform(nb_pred)[0]}")
     print(f"\nSVM SAYS: {le.inverse_transform(svm_pred)[0]}")
 
-
 if __name__ == '__main__': 
     main()
-
