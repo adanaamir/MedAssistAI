@@ -11,6 +11,7 @@ from datetime import timedelta
 from app.ml_utils import preprocess_data, train_model, augment_symptoms
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import json
+from scripts.notifications import send_discord_notification
 
 # ======================== TASK 1: DATA INGESTION ========================
 @task(
@@ -228,15 +229,17 @@ def save_models(models_dict, le, symptoms, metrics):
 # ======================== NOTIFICATION TASK ========================
 @task(
     name="send_notification",
-    description="Send pipeline completion notification",
+    description="Send Discord notification about pipeline status",
     retries=3,
     retry_delay_seconds=5
 )
 def send_notification(success: bool, metrics: dict = None, error_msg: str = None):
     """
-    Send notification about pipeline status
-    For now, prints to console. Can be extended to Discord/Slack/Email
+    Send Discord notification about pipeline status
+    Falls back to console output if webhook is not configured
     """
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "")
+    
     if success:
         print("\n" + "="*60)
         print("🎉 ML PIPELINE COMPLETED SUCCESSFULLY!")
@@ -247,6 +250,12 @@ def send_notification(success: bool, metrics: dict = None, error_msg: str = None
             print(f"   SVM Accuracy: {metrics['svm_baseline']['test_accuracy']:.4f}")
             print(f"   SVM+PCA Accuracy: {metrics['svm_pca']['test_accuracy']:.4f}")
         print("="*60 + "\n")
+        
+        # Send Discord notification if webhook is configured
+        if webhook_url:
+            send_discord_notification(webhook_url, success=True, metrics=metrics)
+        else:
+            print("ℹ️  Discord webhook not configured, skipping Discord notification")
     else:
         print("\n" + "="*60)
         print("❌ ML PIPELINE FAILED!")
@@ -254,6 +263,12 @@ def send_notification(success: bool, metrics: dict = None, error_msg: str = None
         if error_msg:
             print(f"Error: {error_msg}")
         print("="*60 + "\n")
+        
+        # Send Discord notification if webhook is configured
+        if webhook_url:
+            send_discord_notification(webhook_url, success=False, error_msg=error_msg)
+        else:
+            print("ℹ️  Discord webhook not configured, skipping Discord notification")
 
 
 # ======================== MAIN PREFECT FLOW ========================

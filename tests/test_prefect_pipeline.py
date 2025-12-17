@@ -11,7 +11,7 @@ from scripts.prefect_pipeline import (
     evaluate_models,
     save_models
 )
-from scripts.notifications import notify_all
+from scripts.notifications import send_discord_notification
 
 
 def test_data_ingestion():
@@ -87,10 +87,11 @@ def test_model_saving():
     assert os.path.exists(os.path.join(version_dir, "metrics.json"))
 
 
-def test_notification_console():
-    """Test that console notifications work"""
-    # This should not raise any errors
-    notify_all(
+def test_discord_notification_success():
+    """Test that Discord success notifications work without webhook"""
+    # This should not raise any errors even without webhook URL
+    send_discord_notification(
+        webhook_url="",  # Empty URL for testing
         success=True,
         metrics={
             'naive_bayes': {'test_accuracy': 0.95},
@@ -98,8 +99,32 @@ def test_notification_console():
             'svm_pca': {'test_accuracy': 0.94}
         }
     )
+
+
+def test_discord_notification_failure():
+    """Test that Discord failure notifications work without webhook"""
+    # This should not raise any errors even without webhook URL
+    send_discord_notification(
+        webhook_url="",
+        success=False,
+        error_msg="Test error message for pipeline failure"
+    )
+
+
+def test_discord_notification_with_env():
+    """Test Discord notification when webhook is in environment"""
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "")
     
-    notify_all(success=False, error_msg="Test error message")
+    # Should handle gracefully whether webhook exists or not
+    send_discord_notification(
+        webhook_url=webhook_url,
+        success=True,
+        metrics={
+            'naive_bayes': {'test_accuracy': 0.92},
+            'svm_baseline': {'test_accuracy': 0.90},
+            'svm_pca': {'test_accuracy': 0.91}
+        }
+    )
 
 
 def test_pipeline_error_handling():

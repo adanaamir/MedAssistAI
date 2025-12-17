@@ -4,14 +4,6 @@ from datetime import datetime
 import json
 
 def send_discord_notification(webhook_url: str, success: bool, metrics: dict = None, error_msg: str = None):
-    """
-    Send notification to Discord channel via webhook
-    
-    Setup:
-    1. Go to Discord Server Settings > Integrations > Webhooks
-    2. Create webhook, copy URL
-    3. Set environment variable: DISCORD_WEBHOOK_URL
-    """
     try:
         if success:
             embed = {
