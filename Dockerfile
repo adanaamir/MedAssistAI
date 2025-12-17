@@ -16,7 +16,9 @@ ENV PATH=/root/.local/bin:$PATH
 COPY app/ ./app/
 COPY scripts/ ./scripts/
 COPY data/ ./data/
-COPY models/ ./models/
+COPY streamlit_app.py .
+COPY entrypoint.sh .
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
 RUN mkdir -p ml_reports logs
 
@@ -25,8 +27,9 @@ ENV PYTHONUNBUFFERED=1 \
   DISABLE_SUPABASE=1
 
 EXPOSE 8000
+EXPOSE 8501
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
   CMD python -c "import requests; requests.get('http://localhost:8000/docs', timeout=5)" || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./entrypoint.sh"]
