@@ -1,0 +1,15 @@
+{
+    "naive_bayes": {
+        "test_accuracy": 0.9951923076923077,
+        "train_accuracy": 0.9873646209386282
+    },
+    "svm_baseline": {
+        "test_accuracy": 0.04326923076923077,
+        "train_accuracy": 0.044524669073405534
+    },
+    "svm_pca": {
+        "test_accuracy": 0.9951923076923077,
+        "train_accuracy": 0.9885679903730445
+    },
+    "timestamp": "2025-12-18T03:54:03.146415"
+}

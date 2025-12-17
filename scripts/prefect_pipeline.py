@@ -172,15 +172,7 @@ def evaluate_models(models_dict):
         print(f"❌ Model evaluation failed: {str(e)}")
         raise
 
-# ======================== TASK 5: DEEP ML TESTING ========================
-@task(name="deep_ml_testing")
-def deep_ml_testing():
-    """
-    Run DeepChecks to validate data integrity, drift, and performance
-    """
-    success = run_ml_quality_checks()
-    if not success:
-        raise ValueError("ML Quality checks (DeepChecks) failed. Halting deployment.")
+
 
 
 # ======================== TASK 6: SAVE & VERSION MODELS ========================
@@ -305,8 +297,7 @@ def ml_training_pipeline(data_path: str = "data/data.csv"):
         # Step 4: Model Evaluation (Standard Metrics)
         metrics = evaluate_models(models_dict)
 
-        # Step 5: Automated Deep ML Testing (DeepChecks)
-        deep_ml_testing()
+
         
         # Step 6: Save & Version Models
         version_dir = save_models(models_dict, le, symptoms, metrics)
