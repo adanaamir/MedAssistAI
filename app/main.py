@@ -1,6 +1,6 @@
 import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File
-from app.auth import supabase
+from app.auth import get_supabase
 from pydantic import BaseModel
 import joblib, os, logging
 from app.ml_utils import text_to_symptom
@@ -102,6 +102,10 @@ def signup(email: str, password: str):
     logger.info(f"Signup attempt for email: {email}")
     
     try:
+        supabase = get_supabase()
+        if supabase is None:
+            raise HTTPException(status_code=503, detail="Auth service disabled")
+
         response = supabase.auth.sign_up({
             "email": email,
             "password": password
@@ -123,10 +127,15 @@ def login(email: str, password: str):
     logger.info(f"Login attempt for email: {email}")
     
     try:
+        supabase = get_supabase()
+        if supabase is None:
+            raise HTTPException(status_code=503, detail="Auth service disabled")
+
         response = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
+
         if response.user is None:
             logger.warning(f"Login failed - invalid credentials for: {email}")
             raise HTTPException(status_code=400, detail="Invalid Credentials")
