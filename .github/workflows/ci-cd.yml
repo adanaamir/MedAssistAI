@@ -58,6 +58,11 @@ jobs:
     - name: Run unit & ML tests
       run: pytest tests/ -v
 
+    - name: Check models directory
+      run: |
+        echo "Listing models directory content:"
+        ls -R models/ || echo "Models directory not found"
+
     - name: Build Docker image
       run: docker build -t medical-assistant-api .
     
@@ -70,7 +75,7 @@ jobs:
         
         # Wait for container to be ready
         echo "Waiting for container to start..."
-        sleep 10
+        sleep 30
     
     - name: Test Docker container health
       run: |
