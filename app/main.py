@@ -1,6 +1,6 @@
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends, Header
-from auth import supabase
+from app.auth import supabase
 from pydantic import BaseModel
 import joblib, os
 from app.ml_utils import text_to_symptom

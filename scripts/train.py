@@ -1,9 +1,9 @@
-import pandas as pd
+import sys,  os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import joblib 
 from app.ml_utils import preprocess_data, train_model
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import joblib, sys, os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_train, y_train):
     #BASELINE PREDICTIONS
