@@ -19,6 +19,7 @@ def preprocess_data():
     
     symptoms = X.columns.tolist()
     symptoms = [s.lower().strip() for s in X.columns]
+    X.columns = symptoms
     
     # print("Available symptoms:", symptoms)
     
@@ -122,7 +123,7 @@ def text_to_symptom(user_text, symptoms):
         
         vector.append(matched)
 
-    print(f"\n✓ Matched {len(matched_symptoms)} symptoms: {matched_symptoms}")
+    print(f"\nMatched {len(matched_symptoms)} symptoms: {matched_symptoms}")
     return np.array(vector).reshape(1, -1), len(matched_symptoms)
 
 def expand_tokens(tokens):
