@@ -77,82 +77,24 @@ jobs:
     # Discord notification on pipeline completion
     - name: Send Discord Success Notification
       if: success()
+      env:
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
         echo "✅ CI/CD Pipeline completed successfully!"
-        if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-          python -c "
-import os
-import requests
-import json
-from datetime import datetime
-
-webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
-if webhook_url:
-    payload = {
-        'embeds': [{
-            'title': '✅ ML Pipeline Success',
-            'description': 'Medical Assistant CI/CD pipeline completed successfully!',
-            'color': 3066993,
-            'fields': [
-                {'name': '📦 Branch', 'value': '${{ github.ref_name }}', 'inline': True},
-                {'name': '🔨 Commit', 'value': '${{ github.sha }}'[:7], 'inline': True},
-                {'name': '👤 Author', 'value': '${{ github.actor }}', 'inline': True},
-                {'name': '🕐 Timestamp', 'value': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'inline': False}
-            ],
-            'thumbnail': {'url': 'https://cdn-icons-png.flaticon.com/512/2833/2833921.png'}
-        }],
-        'username': 'ML Pipeline Bot'
-    }
-    try:
-        response = requests.post(webhook_url, json=payload, timeout=10)
-        if response.status_code == 204:
-            print('Discord notification sent!')
-        else:
-            print(f'Discord notification failed: {response.status_code}')
-    except Exception as e:
-        print(f'Failed to send Discord notification: {e}')
-"
-        else
-          echo "No Discord webhook configured, skipping notification"
-        fi
+        python scripts/send_discord_notification.py success
     
     - name: Send Discord Failure Notification
       if: failure()
+      env:
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
         echo "❌ CI/CD Pipeline failed!"
-        if [ -n "$DISCORD_WEBHOOK_URL" ]; then
-          python -c "
-import os
-import requests
-import json
-from datetime import datetime
-
-webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
-if webhook_url:
-    payload = {
-        'embeds': [{
-            'title': '❌ ML Pipeline Failed',
-            'description': 'Medical Assistant CI/CD pipeline encountered an error.',
-            'color': 15158332,
-            'fields': [
-                {'name': '📦 Branch', 'value': '${{ github.ref_name }}', 'inline': True},
-                {'name': '🔨 Commit', 'value': '${{ github.sha }}'[:7], 'inline': True},
-                {'name': '👤 Author', 'value': '${{ github.actor }}', 'inline': True},
-                {'name': '🔗 Workflow', 'value': 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}', 'inline': False},
-                {'name': '🕐 Timestamp', 'value': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'inline': False}
-            ]
-        }],
-        'username': 'ML Pipeline Bot'
-    }
-    try:
-        response = requests.post(webhook_url, json=payload, timeout=10)
-        if response.status_code == 204:
-            print('Discord notification sent!')
-        else:
-            print(f'Discord notification failed: {response.status_code}')
-    except Exception as e:
-        print(f'Failed to send Discord notification: {e}')
-"
-        else
-          echo "No Discord webhook configured, skipping notification"
-        fi
+        python scripts/send_discord_notification.py failure
