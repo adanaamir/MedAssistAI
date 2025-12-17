@@ -187,7 +187,7 @@ def expand_tokens(tokens):
         "severe": {"severe", "intense", "extreme", "acute", "bad"},
         "constant": {"constant", "persistent", "ongoing", "continuous", "always"},
 
-        "diarrhea": {"diarrhea","diarrhoea", "diarrhea"},
+        "diarrhea": {"diarrhea","diarrhoea"},
     }
 
     for token in tokens:

@@ -23,3 +23,12 @@ def test_predict_insufficient_symptoms():
     )
     assert response.status_code == 200
     assert "warning" in response.json()
+    
+def test_predict_from_file():
+    content = b"fever cough fatigue headache"
+    response = client.post(
+        "/predict/file",
+        files={"file": ("symptoms.txt", content, "text/plain")}
+    )
+    assert response.status_code == 200
+    assert "predictions" in response.json()
