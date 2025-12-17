@@ -1,13 +1,13 @@
-FROM python:3.10-slim as builder
+FROM python:3.12-slim as builder
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ \
-    && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-FROM python:3.10-slim
+FROM python:3.12-slim
 WORKDIR /app
 
 COPY --from=builder /root/.local /root/.local
@@ -21,8 +21,8 @@ COPY models/ ./models/
 RUN mkdir -p ml_reports logs
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    DISABLE_SUPABASE=1
+  PYTHONDONTWRITEBYTECODE=1 \
+  DISABLE_SUPABASE=1
 
 EXPOSE 8000
 
