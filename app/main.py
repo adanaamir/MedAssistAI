@@ -1,5 +1,5 @@
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from app.auth import supabase
 from pydantic import BaseModel
 import joblib, os
@@ -78,4 +78,15 @@ def login(email: str, password: str):
         "token_type": "bearer"        
     }
 
-    
+@app.post("/predict/file")
+async def predict_from_file(file: UploadFile = File(...)):
+    content = await file.read()
+    symptoms_text = content.decode("utf-8")
+
+    matched, preds = predict_disease(symptoms_text)
+
+    return {
+        "input_type": "file",
+        "matched_symptoms": matched,
+        "predictions": preds
+    }    
