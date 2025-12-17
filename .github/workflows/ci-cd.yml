@@ -94,7 +94,7 @@ jobs:
     
     - name: View Docker logs (on failure)
       if: failure()
-      run: docker logs medical-api-test
+      run: docker logs medical-api-test || echo "Container not found"
     
     - name: Stop and remove Docker container
       if: always()
