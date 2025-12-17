@@ -12,4 +12,4 @@ flake8==6.1.0
 
 prefect==2.14.9
 requests==2.31.0
-griffe>=0.20.0
+griffe==0.38.0
