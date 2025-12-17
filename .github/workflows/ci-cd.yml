@@ -60,6 +60,42 @@ jobs:
 
     - name: Build Docker image
       run: docker build -t medical-assistant-api .
+    
+    - name: Run Docker container
+      run: |
+        docker run -d -p 8000:8000 \
+          -e DISABLE_SUPABASE=1 \
+          --name medical-api-test \
+          medical-assistant-api
+        
+        # Wait for container to be ready
+        echo "Waiting for container to start..."
+        sleep 10
+    
+    - name: Test Docker container health
+      run: |
+        echo "Testing if container is running..."
+        docker ps | grep medical-api-test
+        
+        echo "Testing root endpoint..."
+        curl --fail http://localhost:8000/ || exit 1
+        
+        echo "Testing prediction endpoint..."
+        curl --fail -X POST http://localhost:8000/predict \
+          -H "Content-Type: application/json" \
+          -d '{"symptoms_text": "fever cough headache fatigue"}' || exit 1
+        
+        echo "✅ All Docker container tests passed!"
+    
+    - name: View Docker logs (on failure)
+      if: failure()
+      run: docker logs medical-api-test
+    
+    - name: Stop and remove Docker container
+      if: always()
+      run: |
+        docker stop medical-api-test || true
+        docker rm medical-api-test || true
       
     - name: Upload models as artifacts
       uses: actions/upload-artifact@v4
