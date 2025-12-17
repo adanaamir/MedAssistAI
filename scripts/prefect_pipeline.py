@@ -12,6 +12,7 @@ from app.ml_utils import preprocess_data, train_model, augment_symptoms
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import json
 from scripts.notifications import send_discord_notification
+from scripts.ml_tests import run_ml_quality_checks
 
 # ======================== TASK 1: DATA INGESTION ========================
 @task(
@@ -162,7 +163,6 @@ def evaluate_models(models_dict):
         print(f"   SVM + PCA Test Accuracy: {metrics['svm_pca']['test_accuracy']:.4f}")
         
         # Quality checks - only check NB and SVM+PCA
-        # SVM baseline may perform poorly with augmented data
         assert metrics['naive_bayes']['test_accuracy'] > 0.70, "NB accuracy below threshold"
         assert metrics['svm_pca']['test_accuracy'] > 0.70, "SVM+PCA accuracy below threshold"
         
@@ -172,8 +172,18 @@ def evaluate_models(models_dict):
         print(f"❌ Model evaluation failed: {str(e)}")
         raise
 
+# ======================== TASK 5: DEEP ML TESTING ========================
+@task(name="deep_ml_testing")
+def deep_ml_testing():
+    """
+    Run DeepChecks to validate data integrity, drift, and performance
+    """
+    success = run_ml_quality_checks()
+    if not success:
+        raise ValueError("ML Quality checks (DeepChecks) failed. Halting deployment.")
 
-# ======================== TASK 5: SAVE & VERSION MODELS ========================
+
+# ======================== TASK 6: SAVE & VERSION MODELS ========================
 @task(
     name="save_models",
     description="Save trained models with versioning",
@@ -237,7 +247,6 @@ def save_models(models_dict, le, symptoms, metrics):
 def send_notification(success: bool, metrics: dict = None, error_msg: str = None):
     """
     Send Discord notification about pipeline status
-    Falls back to console output if webhook is not configured
     """
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "")
     
@@ -252,11 +261,10 @@ def send_notification(success: bool, metrics: dict = None, error_msg: str = None
             print(f"   SVM+PCA Accuracy: {metrics['svm_pca']['test_accuracy']:.4f}")
         print("="*60 + "\n")
         
-        # Send Discord notification if webhook is configured
         if webhook_url:
             send_discord_notification(webhook_url, success=True, metrics=metrics)
         else:
-            print("ℹ️  Discord webhook not configured, skipping Discord notification")
+            print("ℹ️ Discord webhook not configured, skipping notification")
     else:
         print("\n" + "="*60)
         print("❌ ML PIPELINE FAILED!")
@@ -265,11 +273,10 @@ def send_notification(success: bool, metrics: dict = None, error_msg: str = None
             print(f"Error: {error_msg}")
         print("="*60 + "\n")
         
-        # Send Discord notification if webhook is configured
         if webhook_url:
             send_discord_notification(webhook_url, success=False, error_msg=error_msg)
         else:
-            print("ℹ️  Discord webhook not configured, skipping Discord notification")
+            print("ℹ️ Discord webhook not configured, skipping notification")
 
 
 # ======================== MAIN PREFECT FLOW ========================
@@ -295,13 +302,16 @@ def ml_training_pipeline(data_path: str = "data/data.csv"):
         # Step 3: Model Training
         models_dict = train_models(X, y_encoded)
         
-        # Step 4: Model Evaluation
+        # Step 4: Model Evaluation (Standard Metrics)
         metrics = evaluate_models(models_dict)
+
+        # Step 5: Automated Deep ML Testing (DeepChecks)
+        deep_ml_testing()
         
-        # Step 5: Save & Version Models
+        # Step 6: Save & Version Models
         version_dir = save_models(models_dict, le, symptoms, metrics)
         
-        # Step 6: Success Notification
+        # Step 7: Success Notification
         send_notification(success=True, metrics=metrics)
         
         return {
@@ -314,7 +324,6 @@ def ml_training_pipeline(data_path: str = "data/data.csv"):
         # Failure Notification
         send_notification(success=False, error_msg=str(e))
         raise
-
 
 if __name__ == "__main__":
     # Run the pipeline

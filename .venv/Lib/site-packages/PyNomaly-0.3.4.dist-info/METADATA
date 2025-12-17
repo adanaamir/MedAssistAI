@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: PyNomaly
+Version: 0.3.4
+Summary: A Python 3 implementation of LoOP: Local Outlier Probabilities, a local density based outlier detection method providing an outlier score in the range of [0,1].
+Home-page: https://github.com/vc1492a/PyNomaly
+Author: Valentino Constantinou
+Author-email: vc@valentino.io
+License: Apache License, Version 2.0
+Download-URL: https://github.com/vc1492a/PyNomaly/archive/0.3.4.tar.gz
+Keywords: outlier,anomaly,detection,machine,learning,probability
+Platform: UNKNOWN
+Requires-Dist: numpy
+Requires-Dist: python-utils
+
+UNKNOWN
+
+
