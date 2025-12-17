@@ -1,0 +1,44 @@
+name: ML CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - app/**
+      - scripts/**
+      - data/**
+      - Dockerfile
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest flake8
+
+    - name: Code checks (flake8)
+      run: flake8 app scripts
+
+    - name: Data validation
+      run: python scripts/validate_data.py
+
+    - name: Run unit & ML tests
+      run: pytest tests/
+
+    - name: Train model (if data changed)
+      run: python scripts/train.py
+
+    - name: Build Docker image
+      run: docker build -t medical-assistant-api .

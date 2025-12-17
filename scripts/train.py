@@ -43,7 +43,7 @@ def model_evaluation(nb_model, svm_baseline, svm_pca, pca, y_test, X_test, X_tra
 def main():
     print("Starting model training...")
     
-    df = pd.read_csv("data.csv")
+    df = pd.read_csv("data/data.csv")
     original_symptoms = df.drop(['Disease'], axis=1).columns.tolist()
     
     #preprocess data

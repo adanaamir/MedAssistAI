@@ -8,7 +8,7 @@ import re
 import numpy as np
 
 def preprocess_data():
-    df = pd.read_csv("data.csv")
+    df = pd.read_csv("data/data.csv")
     
     #defining X and y labels
     X = df.drop(['Disease'], axis=1)
