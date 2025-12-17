@@ -10,7 +10,7 @@ supabase>=2.3.0
 python-multipart>=0.0.7
 pytest==7.4.3
 flake8==6.1.0
-prefect>=2.20.0
+prefect==3.6.6
 websockets>=13.0
 requests==2.31.0
 griffe==0.38.0
