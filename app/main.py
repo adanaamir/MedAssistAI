@@ -142,6 +142,3 @@ def login(email: str, password: str):
         logger.error(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail="Login error")
     
-    
-#YAYYYYYYYYYYYYYYYYY
-#ok
