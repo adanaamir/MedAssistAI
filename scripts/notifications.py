@@ -1,7 +1,5 @@
-import os
 import requests
 from datetime import datetime
-import json
 
 def send_discord_notification(webhook_url: str, success: bool, metrics: dict = None, error_msg: str = None):
     try:
