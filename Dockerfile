@@ -20,6 +20,9 @@ COPY streamlit_app.py .
 COPY entrypoint.sh .
 RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
+# Train models during build to ensure compatibility and existence
+RUN python scripts/train.py
+
 RUN mkdir -p ml_reports logs
 
 ENV PYTHONUNBUFFERED=1 \
