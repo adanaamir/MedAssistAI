@@ -71,7 +71,7 @@ def main():
     joblib.dump(svm_pca, os.path.join(MODEL_DIR, 'svm_pca_model.pkl'))
     joblib.dump(pca, os.path.join(MODEL_DIR, 'pca_transform.pkl'))
     joblib.dump(le, os.path.join(MODEL_DIR, 'label_encoder.pkl'))
-    joblib.dump(original_symptoms, os.path.join(MODEL_DIR, 'symptoms_list.pkl'))
+    joblib.dump(symptoms, os.path.join(MODEL_DIR, 'symptoms_list.pkl'))
     
     print("All models saved successfully!")
     print(f"Models saved to: {os.path.abspath(MODEL_DIR)}")
