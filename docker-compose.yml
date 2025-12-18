@@ -6,6 +6,7 @@ services:
     container_name: medical-assistant-api
     ports:
       - "8000:8000"
+      - "8501:8501"
     env_file:
       - .env
     volumes:
